@@ -237,3 +237,127 @@ charlie.showInfo();  // method riêng của Employee
 
 - `extends` cho biết `Employee` inherit từ `Person`, nên tất cả method định nghĩa trong `Person` (như `sayHello`) đều có thể sử dụng trong `Employee`.
 - `super(name)` gọi `constructor` của class cha (`Person`) để thiết lập những property cơ bản trước khi mở rộng thêm các property mới (ở đây là `position`).
+
+## Functional Programming
+
+- Là phương pháp tập trung vào việc sử dụng func như là đơn vị cơ bản để xử lý data, giảm thiểu side effects => tạo ra code dễ maintainance, dễ predict.
+
+### Khái niệm cơ bản
+
+#### 1. Func as First-Class Citizen (Func là công dân hạng nhất)
+
+- Func được xem là obj, có thể gán cho biến, truyền vào func khác đưới dạng args, hoặc trả về từ một func khác.
+
+```js
+// Gán func cho biến
+const add = (a, b) => a + b;
+
+// Truyền func làm args
+function doOperation(a, b, operation) {
+  return operation(a, b);
+}
+console.log(doOperation(3, 5, add)); // 8
+```
+
+#### 2. Pure Func
+
+- Một func được coi là **Pure** khi với cùng một input nó luôn trả ra cùng một output và không gây ra side effects (không thay đổi biến ngoài func, không thực hiện I/O...) => giúp code dễ test, dễ predict và an toàn khi thay đổi
+
+```js
+// pure func: không thay đổi biến ngoài và luôn cho kết quả nhất định với cùng input
+function square(n) {
+  return n * n;
+}
+console.log(square(5)); // 25
+```
+
+#### 3. Immutability
+
+- Functional Programming khuyến khích không thay đổi data (immutable data)
+- Khi cần thay đổi, tạo ra một bản sao mới thay vì thay đổi biến ban đầu
+- Giúp tránh các lỗi unpredictable khi data bị thay đổi ở những chỗ khác
+
+```js
+const numbers = [1, 2, 3];
+// Thay vì sửa mảng numbers trực tiếp, ta tạo ra một mảng mới bằng cách sử dụng spread operator
+const newNumbers = [...numbers, 4];
+console.log(newNumbers); // [1, 2, 3, 4]
+```
+
+### Higher-Order Func
+
+- Higher-Order Func là các func nhận 1 hoặc nhiều func khác làm args hoặc trả về một func => abstract process & reuse code hiệu quả
+- Ví dụ: các func `map`, `filter`, `reduce` đều là Higher-Order Func
+
+```js
+const numbers = [1, 2, 3, 4];
+const squared = numbers.map(n => n * n); // Áp dụng hàm cho mỗi phần tử của mảng và trả về một mảng mới.
+console.log(squared); // [1, 4, 9, 16]
+
+const numbers = [1, 2, 3, 4, 5];
+const evenNumbers = numbers.filter(n => n % 2 === 0); // Lọc các phần tử của mảng theo điều kiện cho trước.
+console.log(evenNumbers); // [2, 4]
+
+const numbers = [1, 2, 3, 4];
+const sum = numbers.reduce((total, n) => total + n, 0); // Gom các giá trị trong mảng thành một giá trị duy nhất.
+console.log(sum); // 10
+```
+
+### Function Composition và Currying
+
+#### Function Composition
+
+- Là kỹ thuật kết hợp nhiều func với nhau tạo thành 1 func mới => cho phép xử lý data qua nhiều bước theo chuỗi logic
+
+```js
+const addOne = x => x + 1;
+const double = x => x * 2;
+
+// func composition: tăng 1 sau đó nhân đôi
+const addOneThenDouble = x => double(addOne(x));
+console.log(addOneThenDouble(5)); // (5 + 1) * 2 = 12
+```
+
+- lib support func composition: **Ramda** & **Lodash FP**
+
+#### Currying
+
+- Là quá trình chuyển đổi 1 func có nhiều args thành chuỗi các func, mỗi func có 1 args => giúp tạo ra các func chuyên biệt từ 1 func tổng quát => tăng tính reuse và dễ control logic
+
+```js
+// func tổng quát có hai args
+const add = (a, b) => a + b;
+
+// func currying: chuyển thành chuỗi hàm
+const curriedAdd = a => b => a + b;
+
+const addFive = curriedAdd(5); // Tạo func riêng cộng với 5
+console.log(addFive(10)); // 15
+```
+
+#### Recursion (đệ quy)
+
+- Trong functional programming, thay vì dùng các vòng lặp như `for`, `while`, ta có thể sử dụng Recursion func, là func gọi lại chính nó
+- ==**Note**==: khi sử dụng Recursion func, cần đảm bảo có điều kiện rõ ràng để tránh infinite loop
+
+```js
+// tính giai thừa
+function factorial(n) {
+  if (n === 0) return 1; // Điều kiện dừng
+  return n * factorial(n - 1);
+}
+console.log(factorial(5)); // 120
+```
+
+### Ưu và nhược điểm của Functional Programming
+
+#### Ưu
+
+- Dễ test
+- Dễ maintainance do giảm độ phức tạp vì được chia thành những func nhỏ, độc lập với nhau
+- Abstract hoá: phù hợp pipeline xử lý data
+
+#### Nhược
+
+- Đôi khi khó hiểu
+- Performance issue với đệ quy trong một số bài toán

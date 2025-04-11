@@ -2,7 +2,7 @@
 
 ## Advanced Javascript
 
-- [ ] Scope, Closure & Hoisting
+- [x] Scope, Closure & Hoisting
 - [ ] Asynchronous Programming & Event Loop
 - [ ] Prototypes & Inheritance
 - [ ] Functional Programming

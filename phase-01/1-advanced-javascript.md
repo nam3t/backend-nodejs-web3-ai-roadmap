@@ -129,4 +129,111 @@ console.log(b);    // In ra 20
 - Trong khi chờ các task nặng hoàn thành, chương trình vẫn có thể làm việc khác
 => Cải thiện performance và sử dụng resource một cách hợp lý.
 
-### 
+### Ví dụ về Async trong Javascript
+
+#### Callback
+
+- Callback là cách xử lý async truyền thống của Javascript
+- Ví dụ `setTimeout()` sẽ khai báo một callback func để trả về sau một khoảng thời gian
+- Nhược điểm của callback là khi có nhiều func lồng nhau, nó sẽ dễ gây ra **callback hell** làm code khó đọc và khó maintainance.
+
+### Promise
+
+- Promise cho phép xử lý task async qua các method như `.then()`, `.catch()` => giúp việc kết nối các task trở nên rõ ràng hơn
+- Khi một Promise được **resolved** hoặc **rejected**, ta có thể xử lý kết quả mà không cần lồng callback quá sâu
+
+### Async/Await
+
+- Đây là cách triển khai sử dụng Promise nhưng dễ đọc hơn, cho phép viết code asynchronous theo kiểu synchronous
+
+```js
+async function fetchData() {
+  try {
+    const response = await fetch('https://api.example.com/data');
+    const data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error('Lỗi:', error);
+  }
+}
+
+fetchData();
+```
+
+- Ở đây, `await` khiến Javascript chờ Promise fetch API hoàn thành mà không block toàn bộ app.
+
+## Prototypes & Inheritance
+
+### Prototype trong Javascript
+
+- Mỗi một object trong Javascript đều có 1 thuộc tính ẩn gọi là **prototype**, đây là 1 obj mà obj hiện tại inherit các properties và method
+- Khi access vào 1 property của 1 obj mà không tìm thấy tại obj đó, thì Javascript sẽ tự động tìm lên đến **prototype** của obj đó để tìm. Quá trình này tiếp tục cho đến khi tìm đến obj gốc (thường là `Object.prototype`)
+- **Prototype** giúp **reuse code** và **dynamic inherit**
+- **Reuse code**: thay vì viết cùng 1 func ở mỗi obj, ta viết 1 lần ở trên **prototype** để tất cả các obj cùng kiểu sẽ dùng được => giúp tiết kiệm memory
+- **Dynamic inherit**: cho phép các obj có thể inherit property và method được định nghĩa trên **prototype** => giúp dễ dàng mở rộng tính năng
+
+### Cách inherit dựa trên prototype (2 cách phổ biến)
+
+#### 1. Constructor Func
+
+- Đây là cách dùng phổ biến trước khi có `ES6`, dùng **Constructor Func** rồi gán method cho prototype
+
+```js
+// Constructor Func cho obj Person
+function Person(name) {
+  this.name = name;
+}
+
+// Thêm method sayHello vào prototype của Person
+Person.prototype.sayHello = function() {
+  console.log("Hello, my name is " + this.name);
+};
+
+const alice = new Person("Alice");
+alice.sayHello(); // Kết quả: Hello, my name is Alice
+```
+
+- Khi gọi `new Person("Alice")`, một obj mới được tạo ra và property `name` được gán giá trị `"Alice"`.
+- Method `sayHello` được định nghĩa trên `Person.prototype` nên mọi đối tượng tạo ra từ `Person` đều có thể dùng được mà không cần lưu nhiều bản sao của hàm.
+
+#### 2. ES6 Class
+
+- Từ `ES6`, Javascript giới thiệu keyword `class` giúp code dễ đọc, nhưng bản chất vẫn là sử dụng `prototype`
+
+```js
+// Khai báo class Person
+class Person {
+  constructor(name) {
+    this.name = name;
+  }
+  
+  sayHello() {
+    console.log(`Hello, my name is ${this.name}`);
+  }
+}
+
+const bob = new Person("Bob");
+bob.sayHello(); // Kết quả: Hello, my name is Bob
+```
+
+- **Inheritance với ES6 Class**: có thể dễ dàng mở rộng một class để tạo ra class con bằng cách sử dụng từ khóa `extends`.
+
+```js
+class Employee extends Person {
+  constructor(name, position) {
+    super(name); // Gọi constructor của lớp Person
+    this.position = position;
+  }
+  
+  showInfo() {
+    console.log(`Name: ${this.name}, Position: ${this.position}`);
+  }
+}
+
+const charlie = new Employee("Charlie", "Developer");
+charlie.sayHello();  // inherit method từ Person
+charlie.showInfo();  // method riêng của Employee
+```
+
+- `extends` cho biết `Employee` inherit từ `Person`, nên tất cả method định nghĩa trong `Person` (như `sayHello`) đều có thể sử dụng trong `Employee`.
+- `super(name)` gọi `constructor` của class cha (`Person`) để thiết lập những property cơ bản trước khi mở rộng thêm các property mới (ở đây là `position`).

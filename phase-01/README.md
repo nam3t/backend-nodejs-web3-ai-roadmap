@@ -4,7 +4,7 @@
 
 - [x] Scope, Closure & Hoisting
 - [x] Asynchronous Programming
-- [ ] Prototypes & Inheritance
+- [x] Prototypes & Inheritance
 - [ ] Functional Programming
 - [ ] Modules & ES6+ Features
 - [ ] Performance, Memory Management & Debugging

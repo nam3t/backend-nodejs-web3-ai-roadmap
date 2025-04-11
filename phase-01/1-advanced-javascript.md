@@ -116,3 +116,17 @@ console.log(b);    // In ra 20
 ```
 
 - Các biến được khai báo bằng `let` và `const` cũng được hoisted nhưng không được khởi tạo. Khi truy cập trước khi khai báo, sẽ xảy ra lỗi `ReferenceError` do vùng gọi còn được gọi là **Temporal Dead Zone**.
+
+## Asynchronous Programming
+
+### Tại sao cần Asynchronous Programming (Lập trình bất đồng bộ)?
+
+- Trước hết, hãy nói về **Synchronous Programming** (Lập trình đồng bộ), có nghĩa là các câu lệnh được thực hiện theo thứ tự từ trên xuống dưới
+- Ví dụ: nếu có 3 tasks A, B, C thì ta sẽ thực hiện A xong B rồi đến C
+- Nhưng thực tế, một số task như query db, call API, hay read/write file thường sẽ mất thời gian lớn
+- Nếu chờ một task hoàn thành thì toàn bộ app sẽ bị block và không thể phản hồi các event khác
+- Khi đó, **Asynchronous Programming** cho phép thực hiện các task nặng mà không block main thread
+- Trong khi chờ các task nặng hoàn thành, chương trình vẫn có thể làm việc khác
+=> Cải thiện performance và sử dụng resource một cách hợp lý.
+
+### 

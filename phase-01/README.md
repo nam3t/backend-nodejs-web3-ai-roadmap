@@ -3,7 +3,7 @@
 ## Advanced Javascript
 
 - [x] Scope, Closure & Hoisting
-- [ ] Asynchronous Programming & Event Loop
+- [x] Asynchronous Programming
 - [ ] Prototypes & Inheritance
 - [ ] Functional Programming
 - [ ] Modules & ES6+ Features

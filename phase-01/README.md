@@ -7,7 +7,6 @@
 - [x] Prototypes & Inheritance
 - [x] Functional Programming
 - [x] Modules & ES6+ Features
-- [ ] Performance, Memory Management & Debugging
 
 ## Typescript
 

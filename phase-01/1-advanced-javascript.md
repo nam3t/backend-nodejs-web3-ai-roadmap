@@ -546,4 +546,3 @@ asyncTask.then(result => console.log(result));  // Hiển thị "Done!" sau 1 gi
 - **Ngắn gọn**: với syntax mới từ ES6, code trở nên ngắn gọn, rõ ràng hơn
 - **Hỗ trợ asynchronous hiệu quả**: với sự xuất hiện của `Promise` và `async/await`, xử lý asynchronous trở nên dễ dàng và hiệu quả hơn
 - **Bảo mật và tránh xung đột**: Module giúp tránh việc conflict do trùng lặp tên
-

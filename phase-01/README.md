@@ -6,7 +6,7 @@
 - [x] Asynchronous Programming
 - [x] Prototypes & Inheritance
 - [x] Functional Programming
-- [ ] Modules & ES6+ Features
+- [x] Modules & ES6+ Features
 - [ ] Performance, Memory Management & Debugging
 
 ## Typescript

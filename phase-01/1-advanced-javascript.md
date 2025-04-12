@@ -361,3 +361,189 @@ console.log(factorial(5)); // 120
 
 - Đôi khi khó hiểu
 - Performance issue với đệ quy trong một số bài toán
+
+## Modules & ES6+ Features
+
+### Modules
+
+- Modules cho phép chia nhỏ app thành các module độc lập, mỗi module có thể định nghĩa các biến, func, class... public hoặc private => tổ chức code logic hơn & nâng cao khả năng reuse
+
+#### Export
+
+##### 1. named export
+
+```js
+// utils.js
+export function sum(a, b) {
+  return a + b;
+}
+export const PI = 3.14;
+```
+
+- Có thể export nhiều component từ 1 file bằng cách dùng keyword `export` trước mỗi khai báo
+
+##### 2. default export
+
+```js
+// math.js
+export default function multiply(a, b) {
+  return a * b;
+}
+```
+
+- Một module chỉ có 1 default export, khi import có thể đặt tên tuỳ ý
+
+```js
+// main.js
+import multiply from './math.js';
+console.log(multiply(3, 4));
+```
+
+#### Import
+
+##### 1. Import các component sử dụng named export
+
+```js
+import { sum, PI } from './utils.js';
+console.log(sum(2, 3), PI);
+```
+
+##### 2. Import tất cả các export của 1 module, dùng `* as`
+
+```js
+import * as utils from './utils.js';
+console.log(utils.sum(2, 3), utils.PI);
+```
+
+##### 3. Dynamic import: cho phép load module linh hoạt khi runtime => trả về một `Promise`
+
+```js
+async function loadModule() {
+  const module = await import('./moduleA.js');
+  module.someFunction();
+}
+loadModule();
+```
+
+- Dùng để code splitting, chỉ load module khi cần thiết, cải thiện performance.
+
+### Các tính năng ES6 quan trọng
+
+#### Destructuring
+
+- Cho phép tách các value từ array hoặc obj thành các biến riêng biệt => code dễ đọc
+
+```js
+// Destructuring obj:
+const person = { name: 'Alice', age: 30, city: 'Hanoi' };
+const { name, age } = person;
+// Destructuring array:
+const numbers = [1, 2, 3];
+const [first, second] = numbers;
+```
+
+#### Spread operator và Rest parameter
+
+- Spread operator `...` dùng để extend một array hoặc obj
+
+```js
+const arr1 = [1, 2, 3];
+const arr2 = [...arr1, 4, 5];  // [1, 2, 3, 4, 5]
+
+const obj1 = { a: 1, b: 2 };
+const obj2 = { ...obj1, c: 3 };  // { a: 1, b: 2, c: 3 }
+```
+
+- Rest parameter `...` dùng để gộp các phần tử còn lại của array hoặc obj thành một biến args trong func
+
+```js
+function sum(...numbers) {
+  return numbers.reduce((acc, curr) => acc + curr, 0);
+}
+console.log(sum(1, 2, 3, 4)); // 10
+
+const { a, ...others } = { a: 1, b: 2, c: 3 };
+console.log(a);     // 1
+console.log(others); // { b: 2, c: 3 }
+```
+
+#### Arrow Func
+
+```js
+const multiply = (a, b) => a * b;
+```
+
+- ==Arrow func không có binding riêng cho keyword `this`==
+
+#### Template Literals
+
+- Cho phép tạo multiline cho `string`, giúp dễ insert biến vào `string`
+
+```js
+const name = 'Alice';
+const greeting = `Hello, ${name}! Welcome to JavaScript ES6.`;
+// Hỗ trợ multiline string:
+const multiline = `Dòng 1
+Dòng 2
+Dòng 3`;
+```
+
+#### Optional Chaining và Nullish Coalescing operator
+
+- Optional Chaining `?.` dùng để kiểm tra nếu một obj có tồn tại trước khi access vào property của nó => để không xảy ra lỗi runtime
+
+```js
+const user = { profile: { email: 'alice@example.com' } };
+console.log(user.profile?.email);  // 'alice@example.com'
+console.log(user.address?.city);   // undefined
+```
+
+- Nullish Coalescing operator `??` trả về giá trị bên phải khi giá trị bên trái là `null` hoặc `undefined`
+
+```js
+const value = null;
+const result = value ?? 'Default value';
+console.log(result); // 'Default value'
+```
+
+#### Các tính năng khác
+
+- `let` và `const` cung cấp cách khai báo biến với block scope, thay thế `var` với hạn chế về hoisting
+
+```js
+let count = 0;
+const PI = 3.14;
+```
+
+- `class` cho phép định nghĩa các class gần giống với các ngôn ngữ OOP truyền thống
+
+```js
+class Animal {
+  constructor(name) {
+    this.name = name;
+  }
+  speak() {
+    console.log(`${this.name} makes a sound.`);
+  }
+}
+const dog = new Animal('Buddy');
+dog.speak();
+```
+
+- `Promise` hỗ trợ xử lý asynchronous tốt hơn so với callback
+
+```js
+const asyncTask = new Promise((resolve, reject) => {
+  setTimeout(() => resolve('Done!'), 1000);
+});
+asyncTask.then(result => console.log(result));  // Hiển thị "Done!" sau 1 giây
+```
+
+### Tại sao nên sử dụng ES6+ và Module
+
+- **Tổ chức code tốt hơn**: Module giúp chia nhỏ code thành các phần riêng biệt => dễ quản lý và maintain
+- **Dễ Extend**: khi dự án phát triển lớn hơn, module giúp dễ dàng update, maintain mà không ảnh hưởng đến các phần khác
+- **Ngắn gọn**: với syntax mới từ ES6, code trở nên ngắn gọn, rõ ràng hơn
+- **Hỗ trợ asynchronous hiệu quả**: với sự xuất hiện của `Promise` và `async/await`, xử lý asynchronous trở nên dễ dàng và hiệu quả hơn
+- **Bảo mật và tránh xung đột**: Module giúp tránh việc conflict do trùng lặp tên
+

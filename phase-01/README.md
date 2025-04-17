@@ -7,6 +7,7 @@
 - [x] Prototypes & Inheritance
 - [x] Functional Programming
 - [x] Modules & ES6+ Features
+- [x] `this`, `call`, `apply`, `bind`
 
 ## Typescript
 

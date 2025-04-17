@@ -1,5 +1,14 @@
 # Advanced Javascript
 
+**Table of content:**
+
+- [Scope, Closure & Hoisting](#scope-closure--hoisting)
+- [Asynchronous Programming](#asynchronous-programming)
+- [Prototypes & Inheritance](#prototypes--inheritance)
+- [Functional Programming](#functional-programming)
+- [Modules & ES6+ Features](#modules--es6-features)
+- [`this`, `call`, `apply`, `bind`](#this-call-apply-bind)
+
 ## Scope, Closure & Hoisting
 
 ### Scope
@@ -546,3 +555,101 @@ asyncTask.then(result => console.log(result));  // Hiển thị "Done!" sau 1 gi
 - **Ngắn gọn**: với syntax mới từ ES6, code trở nên ngắn gọn, rõ ràng hơn
 - **Hỗ trợ asynchronous hiệu quả**: với sự xuất hiện của `Promise` và `async/await`, xử lý asynchronous trở nên dễ dàng và hiệu quả hơn
 - **Bảo mật và tránh xung đột**: Module giúp tránh việc conflict do trùng lặp tên
+
+## `this`, `call`, `apply`, `bind`
+
+### `this`
+
+- keyword `this` đại điện cho obj mà hàm hiện tại đang được gọi trên nó
+- giá trị của `this` phụ thuộc vào cách hàm được gọi:
+  - **gọi hàm thường**: `this` trỏ đến obj global (`window` trong browser và `global` trong Node)
+  - **gọi hàm như method của obj**: `this` trỏ đến obj đó
+  - **sử dụng trong constructor với `new`**: `this` trỏ đến obj mới được tạo
+  - **arrow func**: `this` không có giá trị riêng mà inherit từ scope cha
+
+```js
+const user = {
+  name: 'santi',
+  greet() {
+    console.log(`Hello, my name is ${this.name}`);
+  }
+};
+
+user.greet(); // Hello, my name is santi
+```
+
+- trong ví dụ này `this` trỏ đến obj `user`
+- `call()`, `apply()` và `bind()` giúp control giá trị của `this` khi gọi hàm
+
+### `call`
+
+- syntax: `func.call(thisArg, arg1, arg2, ...)`
+  => gọi hàm `func` với `this` trỏ đến obj `thisArg`, các `arg` sẽ truyền tuần tự sau đó
+
+```js
+function greet(greeting) {
+  console.log(`${greeting}, my name is ${this.name}`);
+}
+
+const person = { name: 'santi' };
+greet.call(person, 'Hi'); // Hi, my name is santi
+```
+
+- ở đây, `this` trong hàm `greet` được trỏ đến obj `person`
+
+### `apply`
+
+- syntax: `func.apply(thisArg, [argsArray])`
+  => giống như `call` nhưng các `arg` được truyền thành 1 mảng
+
+```js
+function greet(greeting, punctuation) {
+  console.log(`${greeting}, my name is ${this.name}${punctuation}`);
+}
+
+const person = { name: 'santi' };
+greet.apply(person, ['Hello', '!']); // Hello, my name is santi!
+```
+
+### `bind`
+
+- syntax: `func.bind(thisArg, arg1, arg2, ...)`
+  => trả về 1 hàm với `this` trỏ đến `thisArg`, hàm này sẽ không được gọi ngay lập tức
+
+```js
+function greet() {
+  console.log(`Hello, my name is ${this.name}`);
+}
+
+const person = { name: 'santi' };
+const greetPerson = greet.bind(person);
+greetPerson(); // Hello, my name is santi
+```
+
+- `greet.bind(person)` tạo ra 1 hàm `greetPerson` với `this` trỏ đến person
+
+### So sánh
+
+| Method | Gọi hàm ngay lập tức | Arg | Trả về hàm mới |
+| ----------- | ----------- | ----------- | ----------- |
+| `call()` | Có | Riêng lẻ | Không |
+| `apply()` | Có | Mảng | Không |
+| `bind()` | Không | Riêng lẻ | Có |
+
+### Lưu ý về arrow func
+
+- arrow func không có `this` riêng, nó inherit từ scope cha
+- sử dụng `call()`, `apply()`, `bind()` không ảnh hưởng đến `this` trong arrow func
+
+```js
+const person = {
+  name: 'santi',
+  greet: () => {
+    console.log(`Hello, my name is ${this.name}`);
+  }
+};
+
+person.greet(); // Hello, my name is undefined
+```
+
+

@@ -1,6 +1,18 @@
 **Table of content:**
 
 - [Generics](#generics)
+  - [Generics trong class](#generics-trong-class)
+  - [Generics trong interface](#generics-trong-interface)
+  - [Generics Constraints](#generics-constraints)
+  - [Generics với default value](#generics-với-default-value)
+- [Conditional Types và `infer`](#conditional-types-và-infer)
+  - [Conditional Types](#conditional-types)
+  - [`infer`](#infer)
+- [Template Literal Types](#template-literal-types)
+  - [Kết hợp với Union Types](#kết-hợp-với-union-types)
+  - [Sử dụng với `infer` để lấy một phần type của string](#sử-dụng-với-infer-để-lấy-một-phần-type-của-string)
+- [Branded Types](#branded-types)
+  - [Một số trường hợp sử dụng Branded Type](#một-số-trường-hợp-sử-dụng-branded-type)
 
 ## Generics
 

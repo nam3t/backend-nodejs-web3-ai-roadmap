@@ -1,5 +1,3 @@
-# Advanced Javascript
-
 **Table of content:**
 
 - [Scope, Closure & Hoisting](#scope-closure--hoisting)

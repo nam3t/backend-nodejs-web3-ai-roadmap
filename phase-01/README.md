@@ -11,6 +11,11 @@
 
 ## Typescript
 
+- [x] Generics
+- [x] Conditional Types và `infer`
+- [ ] Template Literal Types
+- [ ] Branded Types
+
 ## NodeJS core
 
 ## Backend Framework

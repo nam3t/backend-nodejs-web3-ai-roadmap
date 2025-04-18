@@ -21,7 +21,7 @@
 
 - ví dụ 1:
 
-```js
+```ts
 function identity<T>(arg: T): T {
   return arg;
 }
@@ -35,7 +35,7 @@ let output2 = identity<number>(123);
 
 - ví dụ 2:
 
-```js
+```ts
 let output = identity("World"); // TypeScript suy luận T là string
 ```
 
@@ -45,7 +45,7 @@ let output = identity("World"); // TypeScript suy luận T là string
 
 - dùng để tạo cấu trúc dữ liệu linh hoạt
 
-```js
+```ts
 class Container<T> {
   private value: T;
 
@@ -64,7 +64,7 @@ let numberContainer = new Container<number>(42);
 
 ### Generics trong interface
 
-```js
+```ts
 interface Pair<T, U> {
   first: T;
   second: U;
@@ -77,7 +77,7 @@ let pair: Pair<string, number> = { first: "Age", second: 30 };
 
 - có thể giới hạn kiểu dữ liệu mà Generics chấp nhận
 
-```js
+```ts
 function getLength<T extends { length: number }>(arg: T): number {
   return arg.length;
 }
@@ -93,7 +93,7 @@ getLength(123); // Lỗi: number không có thuộc tính length
 
 - chỉ định default value cho Generics
 
-```js
+```ts
 function createArray<T = string>(length: number, value: T): T[] {
   return Array(length).fill(value);
 }
@@ -107,13 +107,13 @@ let result = createArray(3, "x"); // T mặc định là string
 
 - định nghĩa kiểu dữ liệu dựa trên điều kiện, tương tự `? :`
 
-```js
+```ts
 type ConditionalType<T> = T extends U ? X : Y;
 ```
 
   => nếu `T` có thể extends `U` thì kết quả là `X` còn không là `Y`
 
-```js
+```ts
 type IsString<T> = T extends string ? true : false;
 
 type A = IsString<'hello'>; // true
@@ -125,7 +125,7 @@ type B = IsString<42>;      // false
 - dùng trong Conditional Types để lấy một phần kiểu dữ liệu và gán nó cho một biến kiểu mới => giúp thao tác với các thành phần cụ thể của kiểu dữ liệu phức tạp
 - ví dụ lấy kiểu phần tử của mảng:
 
-```js
+```ts
 type ElementType<T> = T extends (infer U)[] ? U : T;
 
 type A = ElementType<number[]>; // number
@@ -136,7 +136,7 @@ type B = ElementType<string>;   // string
 
 - ví dụ lấy kiểu trả về của hàm
 
-```js
+```ts
 type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
 
 type A = ReturnType<() => string>; // string
@@ -145,7 +145,7 @@ type B = ReturnType<(x: number) => boolean>; // boolean
 
 - ví dụ lấy kiểu tham số đầu tiên của hàm
 
-```js
+```ts
 type FirstArg<T> = T extends (arg: infer A, ...args: any[]) => any ? A : never;
 
 type A = FirstArg<(name: string, age: number) => void>; // string
@@ -153,7 +153,7 @@ type A = FirstArg<(name: string, age: number) => void>; // string
 
 - ví dụ lấy kiểu dữ liệu từ Promise
 
-```js
+```ts
 type AwaitedType<T> = T extends Promise<infer U> ? U : T;
 
 type A = AwaitedType<Promise<number>>; // number
@@ -165,7 +165,7 @@ type B = AwaitedType<string>;          // string
 - syntax: ``` `${...}` ```
 - dùng để tạo các type string mới bằng cách nội suy các type string khác
 
-```js
+```ts
 type World = "world";
 type Greeting = `hello ${World}`; // "hello world"
 ```
@@ -176,7 +176,7 @@ type Greeting = `hello ${World}`; // "hello world"
 
 - tạo ra tất cả các kết hợp có thể
 
-```js
+```ts
 type Color = "red" | "blue";
 type Quantity = "one" | "two";
 type SeussFish = `${Quantity | Color} fish`;
@@ -185,7 +185,7 @@ type SeussFish = `${Quantity | Color} fish`;
 
 ### Sử dụng với `infer` để lấy một phần type của string
 
-```js
+```ts
 type EventName<T extends string> = T extends `on${infer R}Changed` ? R : never;
 
 type Result = EventName<"onUserChanged">; // "User"
@@ -198,7 +198,7 @@ type Result = EventName<"onUserChanged">; // "User"
 - vì Typescript sử dụng **structural typing** (2 type cùng cấu trúc sẽ được coi là tương thích)
   => có thể dẫn đến lỗi không mong muốn khi vô tình sử dụng nhầm các biến cùng kiểu nhưng mang ý nghĩa khác nhau
 
-```js
+```ts
 type UserId = number;
 type ProductId = number;
 
@@ -213,7 +213,7 @@ getUser(productId); // Không có lỗi, nhưng logic sai
 - để tạo **Branded Type**, có thể kết hợp một kiểu cơ bản với một thuộc tính đặc biệt chỉ tồn tại trong type của Typescript
 - ví dụ `unique symbol` để đảm bảo tính unique của brand
 
-```js
+```ts
 declare const userIdBrand: unique symbol;
 type UserId = number & { [userIdBrand]: void };
 
@@ -225,7 +225,7 @@ type ProductId = number & { [productIdBrand]: void };
 
 - để tạo value thuộc kiểu **Branded**, cần sử dụng ép kiểu (type assertion) hoặc các hàm constructor
 
-```js
+```ts
 function createUserId(id: number): UserId {
   return id as UserId;
 }

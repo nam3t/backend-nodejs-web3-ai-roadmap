@@ -13,8 +13,8 @@
 
 - [x] Generics
 - [x] Conditional Types và `infer`
-- [ ] Template Literal Types
-- [ ] Branded Types
+- [x] Template Literal Types
+- [x] Branded Types
 
 ## NodeJS core
 

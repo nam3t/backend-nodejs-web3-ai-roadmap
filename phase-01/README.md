@@ -18,6 +18,13 @@
 
 ## NodeJS core
 
+- [x] Event Loop
+- [x] cluster & worker threads
+- [x] module `fs`
+- [x] module `http`
+- [x] module `events`
+- [x] module `stream`
+
 ## Backend Framework
 
 ## Database

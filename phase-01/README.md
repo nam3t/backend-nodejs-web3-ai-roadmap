@@ -25,8 +25,12 @@
 - [x] module `events`
 - [x] module `stream`
 
-## Backend Framework
-
 ## Database
+
+- [x] advanced PostgreSQL
+- [ ] advanced MongoDB
+- [ ] schema design & query optimization
+- [ ] TypeORM
+- [ ] Redis
 
 ## Design pattern & Best practice

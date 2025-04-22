@@ -26,6 +26,33 @@
     - [JSON/JSONB](#jsonjsonb)
     - [Partitioning](#partitioning)
 - [Advanced MongoDB](#advanced-mongodb)
+  - [Aggregation Pipeline](#aggregation-pipeline)
+    - [các stage nâng cao](#các-stage-nâng-cao)
+      - [`$lookup`](#lookup)
+      - [`$facet`](#facet)
+      - [`$graphLookup`](#graphlookup)
+      - [`$function`](#function)
+  - [Tối ưu query](#tối-ưu-query-1)
+    - [phân tích query với `explain()`](#phân-tích-query-với-explain)
+    - [index](#index)
+    - [projection](#projection)
+    - [phân trang với `limit()` và `skip()`](#phân-trang-với-limit-và-skip)
+    - [`hint()`](#hint)
+  - [schema](#schema)
+    - [Embedding vs. Referencing](#embedding-vs-referencing)
+      - [embedding](#embedding)
+      - [referencing](#referencing)
+    - [design pattern](#design-pattern)
+      - [Extended reference pattern](#extended-reference-pattern)
+      - [polymorphic pattern](#polymorphic-pattern)
+      - [versioning pattern](#versioning-pattern)
+      - [bucket pattern](#bucket-pattern)
+  - [Transactions](#transactions)
+  - [Replication và Sharding](#replication-và-sharding)
+    - [Replication](#replication)
+      - [config Replica Set](#config-replica-set)
+    - [Sharding](#sharding)
+      - [Shard Cluster architecture](#shard-cluster-architecture)
 
 ## Advanced PostgreSQL
 
@@ -464,3 +491,477 @@ VALUES
 
 ## Advanced MongoDB
 
+### Aggregation Pipeline
+
+- là chuỗi các stage xử lý data, mỗi stage thực hiện một phép biến đổi cụ thể trên input data và truyền output kết quả cho stage tiếp theo
+- các stage phổ biến:
+  - `$match` lọc document theo điều kiện
+  - `$group` nhóm document và thực hiện các phép toán như tính tổng, trung bình
+  - `$project` chọn và format lại các field
+  - `$sort` sắp xếp document
+
+#### các stage nâng cao
+
+##### `$lookup` 
+
+- cho phép kết hợp data giữa các collection, tương tự `JOIN` trong SQL
+
+```mongodb
+db.orders.aggregate([
+  {
+    $lookup: {
+      from: "customers",
+      localField: "customerId",
+      foreignField: "_id",
+      as: "customerDetails"
+    }
+  }
+]);
+```
+
+##### `$facet`
+
+- cho phép chạy nhiều pipeline song song và trả về kết quả tổng hợp
+
+```mongodb
+db.products.aggregate([
+  {
+    $facet: {
+      "priceStats": [
+        { $group: { _id: null, avgPrice: { $avg: "$price" } } }
+      ],
+      "categoryCounts": [
+        { $group: { _id: "$category", count: { $sum: 1 } } }
+      ]
+    }
+  }
+]);
+```
+
+##### `$graphLookup`
+
+- thực hiện tìm kiếm đệ quy trong một collection, phù hợp data dạng cây hoặc đồ thị
+
+```mongodb
+db.employees.aggregate([
+  {
+    $graphLookup: {
+      from: "employees",
+      startWith: "$managerId",
+      connectFromField: "managerId",
+      connectToField: "_id",
+      as: "managementHierarchy"
+    }
+  }
+]);
+```
+
+##### `$function`
+
+- viết hàm js tuỳ chỉnh để xử lý data trong pipeline
+
+```mongodb
+db.collection.aggregate([
+  {
+    $addFields: {
+      computedField: {
+        $function: {
+          body: function(value) {
+            return value.toUpperCase();
+          },
+          args: ["$fieldName"],
+          lang: "js"
+        }
+      }
+    }
+  }
+]);
+```
+
+### Tối ưu query
+
+#### phân tích query với `explain()`
+
+- `explain()` cung cấp thông tin chi tiết cách mongodb thực hiện query:
+  - plan query
+  - số lượng document scan
+  - index được sử dụng
+
+```mongodb
+db.users.find({ age: { $gte: 30 } }).explain("executionStats");
+
+// Kết quả sẽ hiển thị các thông tin như totalDocsExamined, totalKeysExamined, và executionTimeMillis
+```
+
+#### index
+
+- index giúp mongodb query nhanh hơn
+
+```mongodb
+// index đơn giản
+db.users.createIndex({ age: 1 });
+
+// index tổng hợp
+db.users.createIndex({ age: 1, name: 1 }); // nên tuần theo quy tắc ESR (Equality, Sort, Range)
+```
+
+- tránh tạo quá nhiều index, mỗi index đều tốn memory và ảnh hưởng đến việc write data
+
+```mongodb
+// kiểm tra việc sử dụng index
+db.users.aggregate([{ $indexStats: {} }]);
+```
+
+#### projection
+
+- projection cho phép chỉ lấy những data cần thiết, giảm dung lượng truyền tải và tăng hiệu suất query
+
+```mongodb
+db.users.find({ age: { $gte: 30 } }, { name: 1, email: 1, _id: 0 });
+```
+
+#### phân trang với `limit()` và `skip()`
+
+```mongodb
+db.users.find().skip(20).limit(10);
+```
+
+- lưu ý khi sử dụng `skip()` với giá trị cao có thể ảnh hưởng đến hiệu suất. Trong trường hợp này có thể sử dụng phân trang dựa trên con trỏ (cursor-based pagination)
+
+#### `hint()`
+
+- chỉ định mongodb sử dụng một số index cụ thể
+
+```mongodb
+db.users.find({ age: { $gte: 30 } }).hint({ age: 1 });
+```
+
+### schema
+
+#### Embedding vs. Referencing
+
+##### embedding
+
+- embedding là việc lưu data liên quan trong cùng một document, giúp query nhanh hơn và tính toàn vẹn của data
+- sử dụng embedding khi:
+  - quan hệ 1:1 hoặc 1:N với số lượng N nhỏ
+  - data liên quan được query cùng nhau thường xuyên
+  - data liên quan không thay đổi thường xuyên
+
+```mongodb
+{
+  "_id": ObjectId("..."),
+  "name": "santi",
+  "orders": [
+    { "order_id": 1001, "item": "Laptop", "price": 1200 },
+    { "order_id": 1002, "item": "Mouse", "price": 25 }
+  ]
+}
+```
+
+##### referencing
+
+- referencing là việc lưu data liên quan ở các collection riêng biệt và sử dụng tham chiếu để liên kết, giúp tránh lặp và dễ quản lý data lớn
+- sử dụng referencing khi:
+  - quan hệ 1:N với N lớn hoặc N:M
+  - data liên quan được query độc lập
+  - data liên quan thay đổi thường xuyên
+
+```mongodb
+// Collection: customers
+{
+  "_id": ObjectId("..."),
+  "name": "santi"
+}
+
+// Collection: orders
+{
+  "_id": ObjectId("..."),
+  "customer_id": ObjectId("..."),
+  "item": "Laptop",
+  "price": 1200
+}
+```
+
+#### design pattern
+
+##### Extended reference pattern
+
+- kết hợp giữa embedding và referencing bằng cách embed một phần data được tham chiếu để giảm số lần query
+
+```mongodb
+// hiển thị danh sách bạn bè mà không cần query thêm
+{
+  "_id": ObjectId("..."),
+  "name": "santi",
+  "friends": [
+    {
+      "_id": ObjectId("..."),
+      "name": "itnas",
+      "profilePic": "..."
+    },
+    ...
+  ]
+}
+```
+
+##### polymorphic pattern
+
+- lưu các loại document khác nhau trong cùng một collection bằng field phân biệt loại, giúp đơn giản hoá việc quản lý và query các loại data khác nhau
+
+```mongodb
+{
+  "_id": ObjectId("..."),
+  "type": "image",
+  "url": "..."
+}
+
+{
+  "_id": ObjectId("..."),
+  "type": "video",
+  "url": "...",
+  "duration": 120
+}
+```
+
+##### versioning pattern
+
+- lưu các version khác nhau của document để theo dõi thay đổi, phù hợp các app cần theo dõi thay đổi hoặc undo/redo
+
+```mongodb
+{
+  "_id": ObjectId("..."),
+  "document_id": ObjectId("..."),
+  "version": 1,
+  "content": "..."
+}
+
+{
+  "_id": ObjectId("..."),
+  "document_id": ObjectId("..."),
+  "version": 2,
+  "content": "..."
+}
+```
+
+##### bucket pattern
+
+- nhóm nhiều document nhỏ vào một document lớn hơn để giảm số lượng document và tăng hiệu suất, thường dùng trong app IoT hoặc ghi nhận data theo thời gian
+
+```mongodb
+{
+  "_id": ObjectId("..."),
+  "sensor_id": "sensor_1",
+  "readings": [
+    { "timestamp": ISODate("2025-04-23T00:00:00Z"), "value": 23.5 },
+    { "timestamp": ISODate("2025-04-23T00:01:00Z"), "value": 24.0 },
+    ...
+  ]
+}
+```
+
+### Transactions
+
+- yêu cầu:
+  - mongodb version 4.0 trở lên
+  - kết nối đến một replica set hoặc shared cluster
+- transaction trong mongodb tương tự trong SQL, thực hiện một chuỗi các thao tác read/write trong một transaction duy nhất
+- nếu bất kỳ thao tác nào thất bại, toàn bộ transaction bị huỷ => đảm bảo data consistent
+- cần handle các lỗi có thể xảy ra như `TransientTransactionError` hoặc `UnknownTransactionCommitResult`
+  
+```mongodb
+// dùng core API NodeJS
+async function transferFunds(client) {
+  const session = client.startSession();
+  try {
+    session.startTransaction();
+
+    const accounts = client.db('bank').collection('accounts');
+
+    await accounts.updateOne(
+      { accountId: 'A123' },
+      { $inc: { balance: -100 } },
+      { session }
+    );
+
+    await accounts.updateOne(
+      { accountId: 'B456' },
+      { $inc: { balance: 100 } },
+      { session }
+    );
+
+    await session.commitTransaction();
+    console.log('Giao dịch thành công!');
+  } catch (error) {
+    console.error('Lỗi giao dịch:', error);
+    await session.abortTransaction();
+  } finally {
+    await session.endSession();
+  }
+}
+
+
+// dùng Convenient Transaction API
+async function transferFunds(client) {
+  await client.withSession(async (session) => {
+    await session.withTransaction(async () => {
+      const accounts = client.db('bank').collection('accounts');
+
+      await accounts.updateOne(
+        { accountId: 'A123' },
+        { $inc: { balance: -100 } },
+        { session }
+      );
+
+      await accounts.updateOne(
+        { accountId: 'B456' },
+        { $inc: { balance: 100 } },
+        { session }
+      );
+    });
+  });
+}
+```
+
+### Replication và Sharding
+
+#### Replication
+
+- Replica Set là một nhóm các server mongodb duy trì cùng một tập data:
+  - high availability: nếu một node lỗi, node khác sẽ sẵn sàng thay thế
+  - an toàn: data được copy sang nhiều node
+  - có thể phân phối tải đọc giữa các node thứ cấp
+
+##### config Replica Set
+
+- bước 1: cài mongo trên ít nhất 3 server
+- bước 2: config file `mongod.conf` trên server:
+
+  ```yaml
+  replication:
+  replSetName: "rs0"
+  ```
+
+- bước 3: khởi động mongodb trên mỗi server:
+  
+  ```bash
+  mongod --config /etc/mongod.conf
+  ```
+
+- bước 4: init Replica Set từ một node:
+  
+  ```mongodb
+    rs.initiate({
+    _id: "rs0",
+    members: [
+        { _id: 0, host: "mongo1:27017" },
+        { _id: 1, host: "mongo2:27017" },
+        { _id: 2, host: "mongo3:27017" }
+    ]
+    })
+  ```
+
+- bước 5: check status
+  
+  ```mongodb
+  rs.status()
+  ```
+
+- lưu ý:
+  - arbiter: nếu chỉ có 2 node, thêm một arbiter để đảm bảo số vote lẻ
+  - oplog: theo dõi và điều chỉnh oplog size cho phù hợp với tải ghi của hệ thống
+  - bảo mật: sử dụng `keyFile` hoặc X.509 certificate để xác thực  giữa các node
+
+#### Sharding
+
+- là kỹ thuật chia data thành các phần nhỏ (shard) và phân phối trên nhiều server
+  => scale horizontal, xử lý khối lượng data lớn
+  => tăng performance do phân tán tải query và write data
+  => tăng khả năng chịu lỗi, mỗi shard có thể là một replica set
+
+##### Shard Cluster architecture
+
+- Shard: lưu data thực tế
+- Config Server: lưu metadata và phân phối data
+- mongos (query router): routing query đến shard phù hợp
+
+- cách triển khai:
+  - bước 1: start config server replica set
+
+  ```bash
+  mongod --configsvr --replSet configReplSet --dbpath /data/configdb --port 27019 --bind_ip localhost
+  ```
+
+  - bước 2: init config server replica set
+
+  ```mongodb
+  rs.initiate({
+    _id: "configReplSet",
+    configsvr: true,
+    members: [
+        { _id: 0, host: "cfg1:27019" },
+        { _id: 1, host: "cfg2:27019" },
+        { _id: 2, host: "cfg3:27019" }
+    ]
+    })
+  ```
+
+  - bước 3: start shard server (mỗi shard là một replica set)
+
+  ```bash
+  mongod --shardsvr --replSet shardReplSet1 --dbpath /data/shard1 --port 27018 --bind_ip localhost
+  ```
+
+  - bước 4: init shard replica set
+
+  ```mongodb
+  rs.initiate({
+    _id: "shardReplSet1",
+    members: [
+        { _id: 0, host: "shard1a:27018" },
+        { _id: 1, host: "shard1b:27018" },
+        { _id: 2, host: "shard1c:27018" }
+    ]
+    })
+  ```
+
+  - bước 5: start mongos và kết nối với config server
+
+  ```bash
+  mongos --configdb configReplSet/cfg1:27019,cfg2:27019,cfg3:27019 --bind_ip localhost
+  ```
+
+  - bước 6: thêm shard vào cluster
+
+  ```mongodb
+  sh.addShard("shardReplSet1/shard1a:27018,shard1b:27018,shard1c:27018")
+  sh.addShard("shardReplSet2/shard2a:27018,shard2b:27018,shard2c:27018")
+  ```
+
+  - bước 7: kích hoạt sharding cho collection cụ thể
+
+  ```mongodb
+  use my_db
+
+  sh.enableSharding("my_db")
+
+  // Sharding theo Hash (phân phối dữ liệu đồng đều)
+  sh.shardCollection("my_db.my_collection", { "my_shard_key": "hashed" })
+
+  // Sharding theo Range (phù hợp với query theo phạm vi)
+  sh.shardCollection("my_db.my_collection", { "my_shard_key": 1 })
+  ```
+
+  - bước 8: check status sharding
+
+  ```mongodb
+  sh.status()
+  // hiển thị thông tin về các Shard, db đã được kích hoạt Sharding và các collection liên quan
+  ```
+
+  - bước 9: check phân phối data
+
+  ```mongodb
+  db.your_collection.getShardDistribution()
+  // hiển thị số lượng document và data size trên từng Shard
+  ```

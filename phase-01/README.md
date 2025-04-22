@@ -28,7 +28,7 @@
 ## Database
 
 - [x] advanced PostgreSQL
-- [ ] advanced MongoDB
+- [x] advanced MongoDB
 - [ ] schema design & query optimization
 - [ ] TypeORM
 - [ ] Redis

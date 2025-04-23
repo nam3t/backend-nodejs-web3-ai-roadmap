@@ -29,7 +29,7 @@
 
 - [x] advanced PostgreSQL
 - [x] advanced MongoDB
-- [ ] TypeORM
-- [ ] Redis
+- [x] TypeORM
+- [x] Redis
 
 ## Design pattern & Best practice

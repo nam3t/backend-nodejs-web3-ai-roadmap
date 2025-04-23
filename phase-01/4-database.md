@@ -71,6 +71,11 @@
     - [Cách 1: dùng `DataSource.transaction()`](#cách-1-dùng-datasourcetransaction)
     - [Cách 2: dùng `QueryRunner`](#cách-2-dùng-queryrunner)
   - [Query Builder](#query-builder)
+- [Redis](#redis)
+  - [Lua Scripting](#lua-scripting)
+  - [pub/sub redis](#pubsub-redis)
+  - [Redis Cluster](#redis-cluster)
+  - [Redis Streams](#redis-streams)
 
 ## Advanced PostgreSQL
 
@@ -1408,3 +1413,86 @@ await dataSource
 - luôn sử dụng tham số (:param) để tránh SQL injection
 - sử dụng `getMany()` hoặc `getOne()` khi cần kết quả dạng entity
 - sử dụng `getRawMany()` hoặc `getRawOne()` khi cần kết quả dạng raw
+
+## Redis
+
+- key-value db, store in memmory
+- use cases:
+  - cache
+  - quản lý session
+  - temp data
+  - queue, pub/sub
+
+### Lua Scripting
+
+- tất cả command trong Lua được chạy atomic
+- giảm số lần round-trip giữa client và server, đặc biệt phù hợp cho các thao tác phức tạp
+- chuyển một số logic từ app sang redis
+- cách chạy Lua script
+  - **EVAL**: chạy trực tiếp script Lua
+  - **EVALSHA**: chạy script đã được lưu trên redis bằng SHA1 hash
+  - **SCRIPT LOAD**: load script lên redis và nhận SHA1 hash
+  - **SCRIPT EXISTS**: check xem script với SHA1 hash đã có trên redis chưa
+
+```lua
+// tăng value của một key
+local key = KEYS[1]
+local increment = tonumber(ARGV[1])
+local current = tonumber(redis.call("GET", key) or "0")
+local new = current + increment
+redis.call("SET", key, new)
+return new
+```
+
+```bash
+// chạy bằng EVAL
+// tăng value của biến counter lên 5
+EVAL "local key = KEYS[1] local increment = tonumber(ARGV[1]) local current = tonumber(redis.call('GET', key) or '0') local new = current + increment redis.call('SET', key, new) return new" 1 counter 5
+```
+
+- lưu ý:
+  - tránh script dài hoặc phức tạp vì redis sẽ bị block trong quá trình chạy
+  - không thực hiện I/O bên ngoài như HTTP request
+  - đảm bảo key được truyền vào thông qua `KEYS` để redis xác định chính xác các key mà script sẽ chạy
+
+### pub/sub redis
+
+- dễ dùng
+- high performance
+- real-time
+- use cases:
+  - **real-time notification**: update order status trong thương mại điện tử, chat notification, hệ thống cảnh báo
+  - **real-time chat**: mỗi room là 1 channel redis, khi user send msg, server publish đến channel tương ứng và tất cả user subscribe channel đó sẽ nhận được msg
+  - **giao tiếp giữa microservices**:
+    - service A publish event `user_registerd` khi user đăng ký mới
+    - service B subscribe event này để gửi email welcome
+    - service C subscribe event này để cập nhật hệ thống user
+  - real-time analytics: phân tích data user real-time
+    - publish user evens (click, view, purchase) đến `user_event`
+    - service analytic subsscribe channel để xử lý và update dashboard
+  - IoT và sensor system:
+    - cảm biến nhiệt độ publish data đến channel `sensor:temperature`
+    - hệ thống subscribe channel này để hiển thị data và kích hoạt cảnh báo khi đến ngưỡng
+- lưu ý:
+  - redis pub/sub không lưu msg, nếu không có subscribers nào listening, msg sẽ bị mất
+  - không có cơ chế xác nhận việc nhận được msg
+  - nếu cần đảm bảo msg không bị mất, có thể dùng redis stream hoặc các hệ thống msg queue khác như RabbitMQ hoặc Kafka
+
+### Redis Cluster
+
+- là giải pháp phân tán của redis:
+  - auto sharding: data được chia thành 16384 hash slots và phân phối tự động giữa các node
+  - hỗ trợ tự động failover khi node master gặp sự cố
+  - dễ mở rộng horizontal scaling bằng cách thêm node mới
+- mỗi node trong cluster cần mở 2 port TCP:
+  - port redis default for client (vd: 6379)
+  - port cluster bus để giao tiếp giữa các node (default là port redis +10000, vd: 16379)
+
+### Redis Streams
+
+- là loại data structure có từ redis 5.0
+- lưu và xử lý data theo dạng log append-only
+- support feature:
+  - lưu data real-time
+  - support nhiều producer và consumer
+  - Consumer Group để share task giữa các consumer

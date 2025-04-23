@@ -53,6 +53,24 @@
       - [config Replica Set](#config-replica-set)
     - [Sharding](#sharding)
       - [Shard Cluster architecture](#shard-cluster-architecture)
+- [TypeORM](#typeorm)
+  - [các loại quan hệ](#các-loại-quan-hệ)
+    - [One-to-One](#one-to-one)
+    - [One-to-Many và Many-to-One](#one-to-many-và-many-to-one)
+    - [Many-to-Many](#many-to-many)
+    - [CRUD](#crud)
+  - [các operator nâng cao](#các-operator-nâng-cao)
+    - [`MoreThan` và `LessThan`](#morethan-và-lessthan)
+    - [`Between`](#between)
+    - [`In` và `Not`](#in-và-not)
+    - [`IsNull`](#isnull)
+    - [`Like` và `ILike`](#like-và-ilike)
+    - [`Raw`](#raw)
+    - [các query phức tạp](#các-query-phức-tạp)
+  - [Transaction](#transaction)
+    - [Cách 1: dùng `DataSource.transaction()`](#cách-1-dùng-datasourcetransaction)
+    - [Cách 2: dùng `QueryRunner`](#cách-2-dùng-queryrunner)
+  - [Query Builder](#query-builder)
 
 ## Advanced PostgreSQL
 
@@ -965,3 +983,428 @@ async function transferFunds(client) {
   db.your_collection.getShardDistribution()
   // hiển thị số lượng document và data size trên từng Shard
   ```
+
+## TypeORM
+
+### các loại quan hệ
+
+#### One-to-One
+
+- một record trong bảng này chỉ liên kết với một record trong bảng kia và ngược lại
+
+```ts
+// mỗi user có 1 profile và mỗi profile thuộc về 1 user
+// Profile.ts
+@Entity()
+export class Profile {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  bio: string;
+
+  @OneToOne(() => User, (user) => user.profile)
+  user: User;
+}
+
+// User.ts
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
+  @JoinColumn()
+  profile: Profile;
+}
+```
+
+#### One-to-Many và Many-to-One
+
+- One-to-Many là một record trong bảng này liên kết với nhiều record trong bảng kia
+- ngược lại Many-to-One là khi nhiều record trong bảng này liên kết với 1 record trong bàng kia
+
+```ts
+// 1 user có nhiều post và nhiều post thược về 1 user
+// Post.ts
+@Entity()
+export class Post {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @ManyToOne(() => User, (user) => user.posts)
+  user: User;
+}
+
+// User.ts
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+}
+```
+
+#### Many-to-Many
+
+- nhiều record trong bảng này liên kết với nhiều record trong bảng kia
+
+```ts
+// 1 post có thể thuộc nhiều category và 1 category có thể có nhiều post
+// Category.ts
+@Entity()
+export class Category {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @ManyToMany(() => Post, (post) => post.categories)
+  posts: Post[];
+}
+
+// Post.ts
+@Entity()
+export class Post {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @ManyToMany(() => Category, (category) => category.posts, { cascade: true })
+  @JoinTable()
+  categories: Category[];
+}
+```
+
+#### CRUD
+
+```ts
+const user = new User();
+user.name = "santi";
+
+const profile = new Profile();
+profile.bio = "Software Engineer";
+user.profile = profile;
+
+await dataSource.manager.save(user);
+
+const post1 = new Post();
+post1.title = "First Post";
+post1.user = user;
+
+const post2 = new Post();
+post2.title = "Second Post";
+post2.user = user;
+
+await dataSource.manager.save([post1, post2]);
+
+const category1 = new Category();
+category1.name = "Tech";
+
+const category2 = new Category();
+category2.name = "Programming";
+
+post1.categories = [category1, category2];
+await dataSource.manager.save(post1);
+```
+
+- query data:
+
+```ts
+const posts = await dataSource
+  .getRepository(Post)
+  .createQueryBuilder("post")
+  .leftJoinAndSelect("post.user", "user")
+  .leftJoinAndSelect("post.categories", "category")
+  .where("user.name = :name", { name: "santi" })
+  .getMany();
+```
+
+### các operator nâng cao
+
+#### `MoreThan` và `LessThan`
+
+- dùng để tìm record có giá trị lớn hơn hoặc nhỏ hơn giá trị cụ thể
+
+```ts
+import { MoreThan, LessThan } from "typeorm";
+
+const posts = await dataSource.getRepository(Post).find({
+  where: {
+    views: MoreThan(100),
+    likes: LessThan(50),
+  },
+});
+```
+
+#### `Between`
+
+- tìm record nằm trong một khoảng nhất định
+
+```ts
+import { Between } from "typeorm";
+
+const posts = await dataSource.getRepository(Post).find({
+  where: {
+    views: Between(100, 200),
+  },
+});
+```
+
+#### `In` và `Not`
+
+- tìm record có giá trị nằm trong hoặc không trong một tập hợp
+
+```ts
+import { In, Not } from "typeorm";
+
+const posts = await dataSource.getRepository(Post).find({
+  where: {
+    status: In(["published", "draft"]),
+    author: Not("admin"),
+  },
+});
+```
+
+#### `IsNull`
+
+- tìm record null
+
+```ts
+import { IsNull } from "typeorm";
+
+const posts = await dataSource.getRepository(Post).find({
+  where: {
+    deletedAt: IsNull(),
+  },
+});
+```
+
+#### `Like` và `ILike`
+
+- tìm string với pattern cụ thể
+
+```ts
+import { Like, ILike } from "typeorm";
+
+const posts = await dataSource.getRepository(Post).find({
+  where: {
+    title: Like("%TypeORM%"),
+    content: ILike("%typeorm%"),
+  },
+});
+```
+
+#### `Raw`
+
+- dùng để viết custom query theo điều kiện
+
+```ts
+import { Raw } from "typeorm";
+
+const posts = await dataSource.getRepository(Post).find({
+  where: {
+    views: Raw((alias) => `${alias} > 100 AND ${alias} < 200`),
+  },
+});
+```
+
+#### các query phức tạp
+
+```ts
+// dùng kết hợp các operator
+import { MoreThan, Not, IsNull } from "typeorm";
+
+const posts = await dataSource.getRepository(Post).find({
+  where: {
+    views: MoreThan(100),
+    status: Not("archived"),
+    deletedAt: IsNull(),
+  },
+});
+
+// dùng QuerryBuilder
+const posts = await dataSource
+  .getRepository(Post)
+  .createQueryBuilder("post")
+  .where("post.views > :views", { views: 100 })
+  .andWhere("post.status != :status", { status: "archived" })
+  .andWhere("post.deletedAt IS NULL")
+  .getMany();
+```
+
+### Transaction
+
+#### Cách 1: dùng `DataSource.transaction()`
+
+ ```ts
+ import { AppDataSource } from "./data-source";
+import { User } from "./entity/User";
+import { Profile } from "./entity/Profile";
+
+await AppDataSource.transaction(async (transactionalEntityManager) => {
+  const user = new User();
+  user.name = "santi";
+  await transactionalEntityManager.save(user);
+
+  const profile = new Profile();
+  profile.user = user;
+  profile.bio = "Software Engineer";
+  await transactionalEntityManager.save(profile);
+});
+```
+
+- tất cả các action trong callback phải dùng `transactionalEntityManager`
+- bất kỳ action nào failed, toàn bộ transaction rollback
+
+#### Cách 2: dùng `QueryRunner`
+
+- control detail hơn trong transaction, phù hợp các tình huống phức tạp hơn
+
+```ts
+import { AppDataSource } from "./data-source";
+import { User } from "./entity/User";
+import { Profile } from "./entity/Profile";
+
+const queryRunner = AppDataSource.createQueryRunner();
+
+// phải gọi connect() trước khi bắt đầu transaction
+await queryRunner.connect();
+await queryRunner.startTransaction();
+
+try {
+  // dùng query.manager để thao tác với db
+  const user = new User();
+  user.name = "Bob";
+  await queryRunner.manager.save(user);
+
+  const profile = new Profile();
+  profile.user = user;
+  profile.bio = "Blockchain Developer";
+  await queryRunner.manager.save(profile);
+
+  await queryRunner.commitTransaction();
+} catch (err) {
+  await queryRunner.rollbackTransaction();
+} finally {
+  // phải luôn gọi release() để giải phóng tài nguyền
+  await queryRunner.release();
+}
+```
+
+### Query Builder
+
+- giúp build query linh hoạt hơn
+
+```ts
+// 2 entity User và Post với quan hệ One-to-Many
+// User.ts
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @OneToMany(() => Post, (post) => post.user)
+  posts: Post[];
+}
+
+// Post.ts
+@Entity()
+export class Post {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  title: string;
+
+  @Column()
+  content: string;
+
+  @ManyToOne(() => User, (user) => user.posts)
+  user: User;
+}
+
+// select all post cùng với thông tin user
+const posts = await dataSource
+  .getRepository(Post)
+  .createQueryBuilder("post")
+  .leftJoinAndSelect("post.user", "user")
+  .getMany();
+
+// filter post theo title
+const posts = await dataSource
+  .getRepository(Post)
+  .createQueryBuilder("post")
+  .where("post.title LIKE :title", { title: "%TypeORM%" })
+  .getMany();
+
+// pagination và order
+const page = 1;
+const pageSize = 10;
+
+const posts = await dataSource
+  .getRepository(Post)
+  .createQueryBuilder("post")
+  .orderBy("post.id", "DESC")
+  .skip((page - 1) * pageSize)
+  .take(pageSize)
+  .getMany();
+
+// group & count post theo user
+const postCounts = await dataSource
+  .getRepository(Post)
+  .createQueryBuilder("post")
+  .select("post.userId", "userId")
+  .addSelect("COUNT(post.id)", "count")
+  .groupBy("post.userId")
+  .getRawMany();
+
+// insert post
+await dataSource
+  .createQueryBuilder()
+  .insert()
+  .into(Post)
+  .values([
+    { title: "New Post", content: "Content here", user: { id: 1 } },
+  ])
+  .execute();
+
+// update post
+await dataSource
+  .createQueryBuilder()
+  .update(Post)
+  .set({ title: "Updated Title" })
+  .where("id = :id", { id: 1 })
+  .execute();
+
+// delete post
+await dataSource
+  .createQueryBuilder()
+  .delete()
+  .from(Post)
+  .where("id = :id", { id: 1 })
+  .execute();
+
+```
+
+- nên sử dụng alias để tránh conflict 
+- luôn sử dụng tham số (:param) để tránh SQL injection
+- sử dụng `getMany()` hoặc `getOne()` khi cần kết quả dạng entity
+- sử dụng `getRawMany()` hoặc `getRawOne()` khi cần kết quả dạng raw

@@ -33,3 +33,6 @@
 - [x] Redis
 
 ## Design pattern & Best practice
+
+- [x] design pattern
+- [x] best practice
